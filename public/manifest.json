@@ -1,0 +1,13 @@
+{
+  "name": "BUT Rise",
+  "description": "Rise that butt!",
+  "version": "1.0",
+  "manifest_version": 3,
+  "icons": {
+    "128": "icon.png"
+  },
+  "permissions": ["notifications", "storage", "alarms"],
+  "action": {
+    "default_popup": "index.html"
+  }
+}

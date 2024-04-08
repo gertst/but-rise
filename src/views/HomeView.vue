@@ -1,6 +1,7 @@
 <template>
   <div>
     <h1 class="center-text">B·U·T Rise!</h1>
+    <h2 class="center-text">Rise that butt!</h2>
     <div class="flex">
       <div>
         <label for="standingTime">Standing Time (minutes):</label>
@@ -12,14 +13,22 @@
       </div>
       <div>
         <button @click="toggleTimer">{{ isStanding ? 'Sit Down' : 'Stand Up' }}</button>
-        <button @click="timer ? resetTimer() : startTimer()">
-          {{ timer ? 'Reset Timer' : 'Start Timer' }}
+        <button @click="pausePlay()">
+          {{ timer ? 'Pause' : 'Start' }}
         </button>
+        <button @click="resetTimer()">Reset</button>
         <button @click="notify('appels')">Notify test</button>
       </div>
       <div>
         <h2>{{ isStanding ? 'Time to Stand Up!' : 'Time to Sit Down!' }}</h2>
         <p class="timer">{{ formattedTime }}</p>
+        <input
+          :key="isStanding ? 'standing' : 'sitting'"
+          type="range"
+          min="0"
+          :max="isStanding ? standingTime * 60 : sittingTime * 60"
+          v-model="runningRemainingTime"
+        />
       </div>
     </div>
   </div>
@@ -28,11 +37,11 @@
 <script setup>
 import { ref, onUnmounted, computed, watch } from 'vue'
 
-const standingTime = ref(30)
-const sittingTime = ref(60)
+const standingTime = ref(25)
+const sittingTime = ref(50)
 
-const storedStandingTime = localStorage.getItem('standingTime')
-const storedSittingTime = localStorage.getItem('sittingTime')
+const storedStandingTime = chrome.storage.sync.get('standingTime')
+const storedSittingTime = chrome.storage.sync.get('sittingTime')
 if (storedStandingTime) {
   standingTime.value = parseInt(storedStandingTime)
 }
@@ -43,19 +52,20 @@ if (storedSittingTime) {
 const isStanding = ref(true)
 const timer = ref(null)
 const timeRemainingStanding = ref(
-  localStorage.getItem('standingTimeRemaining') || standingTime.value * 60
+  chrome.storage.sync.get('standingTimeRemaining') || standingTime.value * 60
 )
 const timeRemainingSitting = ref(
-  localStorage.getItem('sittingTimeRemaining') || sittingTime.value * 60
+  chrome.storage.sync.get('sittingTimeRemaining') || sittingTime.value * 60
 )
 
 const runningRemainingTime = computed({
   get: () => (isStanding.value ? timeRemainingStanding.value : timeRemainingSitting.value),
   set: (value) => {
+    console.log('runningRemainingTime set:', value)
     if (isStanding.value) {
-      timeRemainingStanding.value = value
+      timeRemainingStanding.value = parseInt(value)
     } else {
-      timeRemainingSitting.value = value
+      timeRemainingSitting.value = parseInt(value)
     }
   }
 })
@@ -90,6 +100,16 @@ function startTimer() {
   }, 1000)
   localStorage.setItem('timerIsRunning', true)
 }
+function pausePlay() {
+  if (timer.value) {
+    clearInterval(timer.value)
+    timer.value = null
+    // localStorage.removeItem('timerIsRunning')
+    chrome.storage.sync.set('timerIsRunning', false)
+  } else {
+    startTimer()
+  }
+}
 
 if (localStorage.getItem('timerIsRunning')) {
   startTimer()
@@ -114,18 +134,24 @@ onUnmounted(() => {
 })
 
 watch(standingTime, (newValue) => {
-  localStorage.setItem('standingTime', newValue.toString())
+  // localStorage.setItem('standingTime', newValue.toString())
+  chrome.storage.sync.set('standingTime', newValue.toString())
 })
 
 watch(sittingTime, (newValue) => {
-  localStorage.setItem('sittingTime', newValue.toString())
+  //localStorage.setItem('sittingTime', newValue.toString())
+  chrome.storage.sync.set('sittingTime', newValue.toString())
 })
 
 watch(runningRemainingTime, (newValue) => {
-  localStorage.setItem(
+  chrome.storage.sync.set(
     isStanding.value ? 'standingTimeRemaining' : 'sittingTimeRemaining',
     newValue.toString()
   )
+  // localStorage.setItem(
+  //   isStanding.value ? 'standingTimeRemaining' : 'sittingTimeRemaining',
+  //   newValue.toString()
+  // )
 })
 </script>
 
